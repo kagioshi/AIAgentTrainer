@@ -443,6 +443,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Active calls
+  app.get("/api/calls/active", async (req, res) => {
+    try {
+      const activeCalls = await storage.getAllActiveCalls();
+      res.json(activeCalls);
+    } catch (error) {
+      console.error("Error fetching active calls:", error);
+      res.status(500).json({ message: "Failed to fetch active calls" });
+    }
+  });
+
+  // End call
+  app.post("/api/calls/:callId/end", async (req, res) => {
+    try {
+      const call = await storage.updateCall(req.params.callId, {
+        status: "completed",
+        endTime: new Date()
+      });
+      res.json(call);
+    } catch (error) {
+      console.error("Error ending call:", error);
+      res.status(500).json({ message: "Failed to end call" });
+    }
+  });
+
+  // Voice synthesis endpoint
+  app.post("/api/voice/synthesize", async (req, res) => {
+    try {
+      const { text, voiceId, settings } = req.body;
+      
+      // Mock voice synthesis - in real implementation would use actual TTS service
+      const audioUrl = `https://mock-tts.example.com/synthesize/${voiceId}`;
+      
+      res.json({ 
+        audioUrl,
+        duration: Math.floor(text.length / 10), // Mock duration calculation
+        success: true 
+      });
+    } catch (error) {
+      console.error("Error synthesizing speech:", error);
+      res.status(500).json({ message: "Failed to synthesize speech" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

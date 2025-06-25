@@ -17,9 +17,9 @@ import {
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
-  { name: "Tenant Management", href: "/tenants", icon: Users },
+  { name: "Tenant Management", href: "/tenant-management", icon: Users },
   { name: "AI Agent Training", href: "/ai-training", icon: Bot },
-  { name: "Call Management", href: "/calls", icon: PhoneCall },
+  { name: "Call Management", href: "/call-management", icon: PhoneCall },
   { name: "Flow Builder", href: "/flow-builder", icon: GitBranch },
   { name: "Providers", href: "/providers", icon: Settings },
 ];

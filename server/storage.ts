@@ -384,11 +384,159 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // Missing methods for new features
+  // Enhanced Provider Operations
+  async getProviderByKey(key: string): Promise<Provider | undefined> {
+    const [provider] = await db.select().from(providers)
+      .where(sql`${providers.metadata}->>'providerKey' = ${key}`);
+    return provider;
+  }
+
+  async getProvidersByType(type: string, activeOnly: boolean = false): Promise<Provider[]> {
+    let query = db.select().from(providers).where(eq(providers.type, type as any));
+    if (activeOnly) {
+      query = query.where(eq(providers.isActive, true));
+    }
+    return await query;
+  }
+
+  async getProviderConfigs(providerId: string, tenantId?: string): Promise<ProviderConfig[]> {
+    let query = db.select().from(providerConfigs)
+      .where(eq(providerConfigs.providerId, providerId));
+    
+    if (tenantId) {
+      query = query.where(eq(providerConfigs.tenantId, tenantId));
+    }
+    
+    return await query;
+  }
+
+  async createProviderConfig(configData: InsertProviderConfig): Promise<ProviderConfig> {
+    const [config] = await db.insert(providerConfigs).values(configData).returning();
+    return config;
+  }
+
+  // Training Documents
+  async getTrainingDocumentsByTenant(tenantId: string): Promise<TrainingDocument[]> {
+    return await db.select().from(trainingDocuments)
+      .where(eq(trainingDocuments.tenantId, tenantId));
+  }
+
+  async createTrainingDocument(documentData: InsertTrainingDocument): Promise<TrainingDocument> {
+    const [document] = await db.insert(trainingDocuments).values(documentData).returning();
+    return document;
+  }
+
+  async updateTrainingDocument(id: string, updates: Partial<InsertTrainingDocument>): Promise<TrainingDocument> {
+    const [document] = await db.update(trainingDocuments)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(trainingDocuments.id, id))
+      .returning();
+    return document;
+  }
+
+  async getTrainingDocument(id: string): Promise<TrainingDocument | undefined> {
+    const [document] = await db.select().from(trainingDocuments)
+      .where(eq(trainingDocuments.id, id));
+    return document;
+  }
+
+  async getTrainingJob(id: string): Promise<TrainingJob | undefined> {
+    const [job] = await db.select().from(trainingJobs)
+      .where(eq(trainingJobs.id, id));
+    return job;
+  }
+
+  // Agent Personas
+  async getPersonasByTenant(tenantId: string): Promise<AgentPersona[]> {
+    return await db.select().from(agentPersonas)
+      .where(eq(agentPersonas.tenantId, tenantId));
+  }
+
+  async createAgentPersona(personaData: InsertAgentPersona): Promise<AgentPersona> {
+    const [persona] = await db.insert(agentPersonas).values(personaData).returning();
+    return persona;
+  }
+
+  async updateAgentPersona(id: string, updates: Partial<InsertAgentPersona>): Promise<AgentPersona> {
+    const [persona] = await db.update(agentPersonas)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(agentPersonas.id, id))
+      .returning();
+    return persona;
+  }
+
+  // Conversation Flows
+  async getFlowsByTenant(tenantId: string): Promise<ConversationFlow[]> {
+    return await db.select().from(conversationFlows)
+      .where(eq(conversationFlows.tenantId, tenantId));
+  }
+
+  async createConversationFlow(flowData: InsertConversationFlow): Promise<ConversationFlow> {
+    const [flow] = await db.insert(conversationFlows).values(flowData).returning();
+    return flow;
+  }
+
+  async updateConversationFlow(id: string, updates: Partial<InsertConversationFlow>): Promise<ConversationFlow> {
+    const [flow] = await db.update(conversationFlows)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(conversationFlows.id, id))
+      .returning();
+    return flow;
+  }
+
   async getConversationFlow(id: string): Promise<ConversationFlow | undefined> {
     const [flow] = await db.select().from(conversationFlows)
       .where(eq(conversationFlows.id, id));
     return flow;
+  }
+
+  // Voice Clones
+  async getVoiceClonesByTenant(tenantId: string): Promise<VoiceClone[]> {
+    return await db.select().from(voiceClones)
+      .where(eq(voiceClones.tenantId, tenantId));
+  }
+
+  async createVoiceClone(cloneData: InsertVoiceClone): Promise<VoiceClone> {
+    const [clone] = await db.insert(voiceClones).values(cloneData).returning();
+    return clone;
+  }
+
+  async updateVoiceClone(id: string, updates: Partial<InsertVoiceClone>): Promise<VoiceClone> {
+    const [clone] = await db.update(voiceClones)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(voiceClones.id, id))
+      .returning();
+    return clone;
+  }
+
+  // ML Models
+  async getMLModelsByTenant(tenantId: string): Promise<MLModel[]> {
+    return await db.select().from(mlModels)
+      .where(eq(mlModels.tenantId, tenantId));
+  }
+
+  async createMLModel(modelData: InsertMLModel): Promise<MLModel> {
+    const [model] = await db.insert(mlModels).values(modelData).returning();
+    return model;
+  }
+
+  async updateMLModel(id: string, updates: Partial<InsertMLModel>): Promise<MLModel> {
+    const [model] = await db.update(mlModels)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(mlModels.id, id))
+      .returning();
+    return model;
+  }
+
+  // Call Recordings
+  async getCallRecordingsByTenant(tenantId: string): Promise<CallRecording[]> {
+    return await db.select().from(callRecordings)
+      .where(eq(callRecordings.tenantId, tenantId));
+  }
+
+  async createCallRecording(recordingData: InsertCallRecording): Promise<CallRecording> {
+    const [recording] = await db.insert(callRecordings).values(recordingData).returning();
+    return recording;
   }
 }
 

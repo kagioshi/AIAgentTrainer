@@ -17,9 +17,9 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
-      <Route path="/tenants" component={TenantManagement} />
+      <Route path="/tenant-management" component={TenantManagement} />
       <Route path="/ai-training" component={AiTraining} />
-      <Route path="/calls" component={CallManagement} />
+      <Route path="/call-management" component={CallManagement} />
       <Route path="/flow-builder" component={FlowBuilder} />
       <Route path="/providers" component={ProviderManagement} />
       <Route path="/analytics" component={Analytics} />
