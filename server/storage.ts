@@ -14,6 +14,10 @@ import {
   mlModels,
   providerConfigs,
   callRecordings,
+  agentContainers,
+  campaigns,
+  campaignLeads,
+  voipLogs,
   type AdminUser,
   type InsertAdminUser,
   type Tenant,
@@ -44,6 +48,14 @@ import {
   type InsertProviderConfig,
   type CallRecording,
   type InsertCallRecording,
+  type AgentContainer,
+  type InsertAgentContainer,
+  type Campaign,
+  type InsertCampaign,
+  type CampaignLead,
+  type InsertCampaignLead,
+  type VoipLog,
+  type InsertVoipLog,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, count, sql } from "drizzle-orm";
@@ -134,6 +146,30 @@ export interface IStorage {
   // Call Recordings
   getCallRecordingsByTenant(tenantId: string): Promise<CallRecording[]>;
   createCallRecording(recording: InsertCallRecording): Promise<CallRecording>;
+
+  // VoIP Logs
+  createVoipLog(log: InsertVoipLog): Promise<VoipLog>;
+  getVoipLogsByTenant(tenantId: string, provider?: string): Promise<VoipLog[]>;
+
+  // Campaigns and Leads
+  createCampaign(campaign: InsertCampaign): Promise<Campaign>;
+  updateCampaign(id: string, updates: Partial<InsertCampaign>): Promise<Campaign>;
+  getCampaign(id: string): Promise<Campaign | undefined>;
+  getCampaignsByTenant(tenantId: string): Promise<Campaign[]>;
+  
+  createCampaignLead(lead: InsertCampaignLead): Promise<CampaignLead>;
+  updateCampaignLead(id: string, updates: Partial<InsertCampaignLead>): Promise<CampaignLead>;
+  getCampaignLeads(campaignId: string): Promise<CampaignLead[]>;
+  getCampaignLeadsByStatus(campaignId: string, status: string): Promise<CampaignLead[]>;
+  
+  // Agent Containers
+  createAgentContainer(container: InsertAgentContainer): Promise<AgentContainer>;
+  updateAgentContainer(id: string, updates: Partial<InsertAgentContainer>): Promise<AgentContainer>;
+  getAgentContainersByTenant(tenantId: string): Promise<AgentContainer[]>;
+  
+  // Helper methods for campaigns
+  getActiveCampaignCalls(campaignId: string): Promise<Call[]>;
+  getCall(id: string): Promise<Call | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -537,6 +573,108 @@ export class DatabaseStorage implements IStorage {
   async createCallRecording(recordingData: InsertCallRecording): Promise<CallRecording> {
     const [recording] = await db.insert(callRecordings).values(recordingData).returning();
     return recording;
+  }
+
+  // VoIP Logs
+  async createVoipLog(logData: InsertVoipLog): Promise<VoipLog> {
+    const [log] = await db.insert(voipLogs).values(logData).returning();
+    return log;
+  }
+
+  async getVoipLogsByTenant(tenantId: string, provider?: string): Promise<VoipLog[]> {
+    let query = db.select().from(voipLogs).where(eq(voipLogs.tenantId, tenantId));
+    
+    if (provider) {
+      query = query.where(eq(voipLogs.provider, provider));
+    }
+    
+    return await query.orderBy(desc(voipLogs.createdAt));
+  }
+
+  // Campaigns
+  async createCampaign(campaignData: InsertCampaign): Promise<Campaign> {
+    const [campaign] = await db.insert(campaigns).values(campaignData).returning();
+    return campaign;
+  }
+
+  async updateCampaign(id: string, updates: Partial<InsertCampaign>): Promise<Campaign> {
+    const [campaign] = await db
+      .update(campaigns)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(campaigns.id, id))
+      .returning();
+    return campaign;
+  }
+
+  async getCampaign(id: string): Promise<Campaign | undefined> {
+    const [campaign] = await db.select().from(campaigns).where(eq(campaigns.id, id));
+    return campaign;
+  }
+
+  async getCampaignsByTenant(tenantId: string): Promise<Campaign[]> {
+    return await db.select().from(campaigns)
+      .where(eq(campaigns.tenantId, tenantId))
+      .orderBy(desc(campaigns.createdAt));
+  }
+
+  // Campaign Leads
+  async createCampaignLead(leadData: InsertCampaignLead): Promise<CampaignLead> {
+    const [lead] = await db.insert(campaignLeads).values(leadData).returning();
+    return lead;
+  }
+
+  async updateCampaignLead(id: string, updates: Partial<InsertCampaignLead>): Promise<CampaignLead> {
+    const [lead] = await db
+      .update(campaignLeads)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(campaignLeads.id, id))
+      .returning();
+    return lead;
+  }
+
+  async getCampaignLeads(campaignId: string): Promise<CampaignLead[]> {
+    return await db.select().from(campaignLeads)
+      .where(eq(campaignLeads.campaignId, campaignId))
+      .orderBy(campaignLeads.createdAt);
+  }
+
+  async getCampaignLeadsByStatus(campaignId: string, status: string): Promise<CampaignLead[]> {
+    return await db.select().from(campaignLeads)
+      .where(eq(campaignLeads.campaignId, campaignId))
+      .where(eq(campaignLeads.status, status as any));
+  }
+
+  // Agent Containers
+  async createAgentContainer(containerData: InsertAgentContainer): Promise<AgentContainer> {
+    const [container] = await db.insert(agentContainers).values(containerData).returning();
+    return container;
+  }
+
+  async updateAgentContainer(id: string, updates: Partial<InsertAgentContainer>): Promise<AgentContainer> {
+    const [container] = await db
+      .update(agentContainers)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(agentContainers.id, id))
+      .returning();
+    return container;
+  }
+
+  async getAgentContainersByTenant(tenantId: string): Promise<AgentContainer[]> {
+    return await db.select().from(agentContainers)
+      .where(eq(agentContainers.tenantId, tenantId))
+      .orderBy(desc(agentContainers.createdAt));
+  }
+
+  // Helper methods for campaigns
+  async getActiveCampaignCalls(campaignId: string): Promise<Call[]> {
+    return await db.select().from(calls)
+      .where(eq(calls.metadata, sql`jsonb_build_object('campaignId', ${campaignId})`))
+      .where(sql`${calls.status} IN ('queued', 'active')`);
+  }
+
+  async getCall(id: string): Promise<Call | undefined> {
+    const [call] = await db.select().from(calls).where(eq(calls.id, id));
+    return call;
   }
 }
 

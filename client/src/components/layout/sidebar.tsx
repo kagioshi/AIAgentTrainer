@@ -5,6 +5,7 @@ import {
   Users,
   Bot,
   PhoneCall,
+  Target,
   GitBranch,
   Settings,
   BarChart3,
@@ -20,6 +21,7 @@ const navigation = [
   { name: "Tenant Management", href: "/tenant-management", icon: Users },
   { name: "AI Agent Training", href: "/ai-training", icon: Bot },
   { name: "Call Management", href: "/call-management", icon: PhoneCall },
+  { name: "Campaign Management", href: "/campaign-management", icon: Target },
   { name: "Flow Builder", href: "/flow-builder", icon: GitBranch },
   { name: "Providers", href: "/providers", icon: Settings },
 ];

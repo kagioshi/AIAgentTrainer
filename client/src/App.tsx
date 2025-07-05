@@ -8,6 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import TenantManagement from "@/pages/tenant-management";
 import AiTraining from "@/pages/ai-training";
 import CallManagement from "@/pages/call-management";
+import CampaignManagement from "@/pages/campaign-management";
 import FlowBuilder from "@/pages/flow-builder";
 import ProviderManagement from "@/pages/provider-management";
 import Analytics from "@/pages/analytics";
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/tenant-management" component={TenantManagement} />
       <Route path="/ai-training" component={AiTraining} />
       <Route path="/call-management" component={CallManagement} />
+      <Route path="/campaign-management" component={CampaignManagement} />
       <Route path="/flow-builder" component={FlowBuilder} />
       <Route path="/providers" component={ProviderManagement} />
       <Route path="/analytics" component={Analytics} />

@@ -25,6 +25,9 @@ export const providerStatusEnum = pgEnum("provider_status", ["active", "inactive
 export const documentTypeEnum = pgEnum("document_type", ["pdf", "txt", "docx", "csv", "json"]);
 export const flowNodeTypeEnum = pgEnum("flow_node_type", ["start", "message", "condition", "action", "end", "api_call", "webhook"]);
 export const voiceProviderEnum = pgEnum("voice_provider", ["openai", "google", "azure", "elevenlabs"]);
+export const containerStatusEnum = pgEnum("container_status", ["starting", "running", "stopped", "error"]);
+export const campaignStatusEnum = pgEnum("campaign_status", ["draft", "scheduled", "running", "paused", "completed"]);
+export const leadStatusEnum = pgEnum("lead_status", ["pending", "contacted", "answered", "voicemail", "busy", "failed"]);
 
 // Root Admin Users
 export const adminUsers = pgTable("admin_users", {
@@ -253,6 +256,76 @@ export const callRecordings = pgTable("call_recordings", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Agent Containers - Isolated tenant environments
+export const agentContainers = pgTable("agent_containers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  agentId: uuid("agent_id").references(() => aiAgents.id).notNull(),
+  containerName: varchar("container_name", { length: 255 }).notNull(),
+  namespace: varchar("namespace", { length: 100 }).notNull(),
+  status: containerStatusEnum("status").default("starting"),
+  replUrl: text("repl_url"),
+  resourceLimits: jsonb("resource_limits"),
+  environment: jsonb("environment"),
+  lastHealthCheck: timestamp("last_health_check"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Campaigns - Automated lead processing
+export const campaigns = pgTable("campaigns", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  agentId: uuid("agent_id").references(() => aiAgents.id).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  status: campaignStatusEnum("status").default("draft"),
+  totalLeads: integer("total_leads").default(0),
+  completedLeads: integer("completed_leads").default(0),
+  successfulCalls: integer("successful_calls").default(0),
+  scheduledAt: timestamp("scheduled_at"),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  settings: jsonb("settings"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Campaign Leads - Lead management for campaigns
+export const campaignLeads = pgTable("campaign_leads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  campaignId: uuid("campaign_id").references(() => campaigns.id).notNull(),
+  firstName: varchar("first_name", { length: 100 }),
+  lastName: varchar("last_name", { length: 100 }),
+  phoneNumber: varchar("phone_number", { length: 50 }).notNull(),
+  email: varchar("email", { length: 255 }),
+  company: varchar("company", { length: 255 }),
+  status: leadStatusEnum("status").default("pending"),
+  callAttempts: integer("call_attempts").default(0),
+  lastCallAt: timestamp("last_call_at"),
+  callDuration: integer("call_duration"),
+  callTranscript: text("call_transcript"),
+  callSentiment: numeric("call_sentiment", { precision: 3, scale: 2 }),
+  notes: text("notes"),
+  customFields: jsonb("custom_fields"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// VoIP Orchestrator Logs - Unified calling interface tracking
+export const voipLogs = pgTable("voip_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
+  callId: uuid("call_id").references(() => calls.id),
+  provider: varchar("provider", { length: 100 }).notNull(),
+  action: varchar("action", { length: 100 }).notNull(),
+  request: jsonb("request"),
+  response: jsonb("response"),
+  errorMessage: text("error_message"),
+  duration: integer("duration"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertAdminUserSchema = createInsertSchema(adminUsers).omit({
   id: true,
@@ -296,6 +369,29 @@ export const insertSystemStatsSchema = createInsertSchema(systemStats).omit({
 });
 
 export const insertActivityLogSchema = createInsertSchema(activityLog).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertAgentContainerSchema = createInsertSchema(agentContainers).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCampaignSchema = createInsertSchema(campaigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCampaignLeadSchema = createInsertSchema(campaignLeads).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertVoipLogSchema = createInsertSchema(voipLogs).omit({
   id: true,
   createdAt: true,
 });
@@ -348,3 +444,15 @@ export type InsertProviderConfig = typeof providerConfigs.$inferInsert;
 
 export type CallRecording = typeof callRecordings.$inferSelect;
 export type InsertCallRecording = typeof callRecordings.$inferInsert;
+
+export type AgentContainer = typeof agentContainers.$inferSelect;
+export type InsertAgentContainer = z.infer<typeof insertAgentContainerSchema>;
+
+export type Campaign = typeof campaigns.$inferSelect;
+export type InsertCampaign = z.infer<typeof insertCampaignSchema>;
+
+export type CampaignLead = typeof campaignLeads.$inferSelect;
+export type InsertCampaignLead = z.infer<typeof insertCampaignLeadSchema>;
+
+export type VoipLog = typeof voipLogs.$inferSelect;
+export type InsertVoipLog = z.infer<typeof insertVoipLogSchema>;
