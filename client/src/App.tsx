@@ -12,6 +12,7 @@ import CampaignManagement from "@/pages/campaign-management";
 import FlowBuilder from "@/pages/flow-builder";
 import ProviderManagement from "@/pages/provider-management";
 import Analytics from "@/pages/analytics";
+import KnowledgeBase from "@/pages/knowledge-base";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,7 @@ function Router() {
       <Route path="/ai-training" component={AiTraining} />
       <Route path="/call-management" component={CallManagement} />
       <Route path="/campaign-management" component={CampaignManagement} />
+      <Route path="/knowledge-base" component={KnowledgeBase} />
       <Route path="/flow-builder" component={FlowBuilder} />
       <Route path="/providers" component={ProviderManagement} />
       <Route path="/analytics" component={Analytics} />

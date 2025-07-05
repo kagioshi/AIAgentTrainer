@@ -170,6 +170,10 @@ export interface IStorage {
   // Helper methods for campaigns
   getActiveCampaignCalls(campaignId: string): Promise<Call[]>;
   getCall(id: string): Promise<Call | undefined>;
+  
+  // Agent and Container helpers
+  getAgent(id: string): Promise<AiAgent | undefined>;
+  getAgentContainer(agentId: string): Promise<AgentContainer | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -675,6 +679,18 @@ export class DatabaseStorage implements IStorage {
   async getCall(id: string): Promise<Call | undefined> {
     const [call] = await db.select().from(calls).where(eq(calls.id, id));
     return call;
+  }
+
+  // Agent and Container helpers
+  async getAgent(id: string): Promise<AiAgent | undefined> {
+    const [agent] = await db.select().from(aiAgents).where(eq(aiAgents.id, id));
+    return agent;
+  }
+
+  async getAgentContainer(agentId: string): Promise<AgentContainer | undefined> {
+    const [container] = await db.select().from(agentContainers)
+      .where(eq(agentContainers.agentId, agentId));
+    return container;
   }
 }
 

@@ -487,6 +487,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== Knowledge Retrieval Routes =====
+  const { knowledgeRetrieval } = await import("./services/knowledgeRetrieval");
+
+  app.post("/api/knowledge/index", async (req: Request, res: Response) => {
+    const { tenantId, documentId, content, metadata } = req.body;
+
+    if (!tenantId || !documentId || !content) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+      await knowledgeRetrieval.indexDocument(tenantId, documentId, content, metadata);
+      res.json({ success: true, message: "Document indexed successfully" });
+    } catch (error) {
+      console.error("Error indexing document:", error);
+      res.status(500).json({ error: "Failed to index document" });
+    }
+  });
+
+  app.post("/api/knowledge/search", async (req: Request, res: Response) => {
+    const { tenantId, query, topK = 3, filters } = req.body;
+
+    if (!tenantId || !query) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+      const results = await knowledgeRetrieval.search(tenantId, query, topK, filters);
+      res.json(results);
+    } catch (error) {
+      console.error("Error searching knowledge base:", error);
+      res.status(500).json({ error: "Failed to search knowledge base" });
+    }
+  });
+
+  app.get("/api/knowledge/stats/:tenantId", async (req: Request, res: Response) => {
+    const { tenantId } = req.params;
+
+    try {
+      const stats = await knowledgeRetrieval.getKnowledgeStats(tenantId);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error getting knowledge stats:", error);
+      res.status(500).json({ error: "Failed to get knowledge stats" });
+    }
+  });
+
+  app.post("/api/knowledge/index-documents/:tenantId", async (req: Request, res: Response) => {
+    const { tenantId } = req.params;
+
+    try {
+      await knowledgeRetrieval.indexTrainingDocuments(tenantId);
+      res.json({ success: true, message: "Training documents indexed successfully" });
+    } catch (error) {
+      console.error("Error indexing training documents:", error);
+      res.status(500).json({ error: "Failed to index training documents" });
+    }
+  });
+
+  // ===== Persona Agent Factory Routes =====
+  const { personaAgentFactory } = await import("./services/personaAgentFactory");
+
+  app.get("/api/agent-templates", async (req: Request, res: Response) => {
+    try {
+      const templates = personaAgentFactory.getTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error getting agent templates:", error);
+      res.status(500).json({ error: "Failed to get agent templates" });
+    }
+  });
+
+  app.post("/api/agents/deploy", async (req: Request, res: Response) => {
+    const { tenantId, templateId, agentData } = req.body;
+
+    if (!tenantId || !templateId || !agentData?.name) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+      const deployment = await personaAgentFactory.createAgent(
+        tenantId,
+        templateId,
+        agentData
+      );
+      res.json(deployment);
+    } catch (error) {
+      console.error("Error deploying agent:", error);
+      res.status(500).json({ error: "Failed to deploy agent" });
+    }
+  });
+
+  app.post("/api/agents/:agentId/clone", async (req: Request, res: Response) => {
+    const { agentId } = req.params;
+    const { tenantId, newName } = req.body;
+
+    if (!tenantId || !newName) {
+      return res.status(400).json({ error: "Missing required fields" });
+    }
+
+    try {
+      const deployment = await personaAgentFactory.cloneAgent(
+        tenantId,
+        agentId,
+        newName
+      );
+      res.json(deployment);
+    } catch (error) {
+      console.error("Error cloning agent:", error);
+      res.status(500).json({ error: "Failed to clone agent" });
+    }
+  });
+
+  app.post("/api/agents/:agentId/version", async (req: Request, res: Response) => {
+    const { agentId } = req.params;
+    const { versionTag } = req.body;
+
+    try {
+      const version = await personaAgentFactory.versionAgent(agentId, versionTag);
+      res.json({ version });
+    } catch (error) {
+      console.error("Error versioning agent:", error);
+      res.status(500).json({ error: "Failed to version agent" });
+    }
+  });
+
+  app.get("/api/agents/:agentId/health", async (req: Request, res: Response) => {
+    const { agentId } = req.params;
+
+    try {
+      const health = await personaAgentFactory.checkAgentHealth(agentId);
+      res.json(health);
+    } catch (error) {
+      console.error("Error checking agent health:", error);
+      res.status(500).json({ error: "Failed to check agent health" });
+    }
+  });
+
+  app.post("/api/agents/:agentId/stop", async (req: Request, res: Response) => {
+    const { agentId } = req.params;
+
+    try {
+      await personaAgentFactory.stopAgent(agentId);
+      res.json({ success: true, message: "Agent stopped successfully" });
+    } catch (error) {
+      console.error("Error stopping agent:", error);
+      res.status(500).json({ error: "Failed to stop agent" });
+    }
+  });
+
+  app.post("/api/agents/:agentId/start", async (req: Request, res: Response) => {
+    const { agentId } = req.params;
+
+    try {
+      await personaAgentFactory.startAgent(agentId);
+      res.json({ success: true, message: "Agent started successfully" });
+    } catch (error) {
+      console.error("Error starting agent:", error);
+      res.status(500).json({ error: "Failed to start agent" });
+    }
+  });
+
+  app.get("/api/agent-containers/:tenantId", async (req: Request, res: Response) => {
+    const { tenantId } = req.params;
+
+    try {
+      const containers = await storage.getAgentContainersByTenant(tenantId);
+      res.json(containers);
+    } catch (error) {
+      console.error("Error getting agent containers:", error);
+      res.status(500).json({ error: "Failed to get agent containers" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
